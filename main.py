@@ -13,6 +13,10 @@ def standardize(df):
         df.loc[df[column] > 50, column] = np.nan
         df.loc[df[column] < -30, column] = np.nan     
         # Remplace par NaN si  valeur trop extreme en local (+/- 15 par rapport aux valeurs de proximité)
+        diff_precedente = df[column].diff().abs()
+        diff_suivante = df[column].shift(-1).diff().abs()
+        condition = (diff_precedente > 15) | (diff_suivante > 15)
+        df.loc[condition, column] = np.nan
         # Remplacer les NaN (valeurs non numériques) par la moyenne de la colonne
         mean_value = df[column].mean()
         df[column].fillna(mean_value, inplace=True)
