@@ -13,3 +13,30 @@ requiredFiles = [".replit", "replit.nix"]
 [deployment]
 run = ["python3", "main.py"]
 deploymentTarget = "cloudrun"
+
+[[ports]]
+localPort = 80
+externalPort = 80
+
+[[ports]]
+localPort = 3000
+externalPort = 3000
+
+[[ports]]
+localPort = 8000
+externalPort = 8000
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
+
+[workflows]
+
+[[workflows.workflow]]
+name = "Start HTTP Service"
+mode = "parallel"
+author = 2549275
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd ~/workspace/export; python3 -m http.server 3000"
