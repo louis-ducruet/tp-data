@@ -9,6 +9,10 @@ def standardize(df):
     for column in df.columns:
         # Convertir la colonne en numérique, forcer les erreurs à NaN
         df[column] = pd.to_numeric(df[column], errors='coerce')
+        # Remplace par Nan si valeur trop extreme
+        df.loc[df[column] > 50, column] = np.nan
+        df.loc[df[column] < -30, column] = np.nan     
+        # Remplace par NaN si  valeur trop extreme en local (+/- 15 par rapport aux valeurs de proximité)
         # Remplacer les NaN (valeurs non numériques) par la moyenne de la colonne
         mean_value = df[column].mean()
         df[column].fillna(mean_value, inplace=True)
@@ -113,8 +117,14 @@ print("Téléchargez-les ou ouvrez-les dans un navigateur.")
 
 #DF_PART
 
+# Remplacer les valeurs non numériques par NaN et interpoler les données manquantes
+df_part = df_part.apply(pd.to_numeric, errors='coerce')
+df_part = df_part.interpolate(method='linear', axis=0)
+
+# Ajouter une colonne pour les jours
+df_part['Jour'] = df_part.index + 1
+
 # Restructurer les données pour un format long
-df_part['Jour'] = df_part.index + 1  # Ajouter une colonne pour les jours
 df_long = df_part.melt(id_vars=['Jour'], var_name='Mois', value_name='Température')
 
 # Troisième figure : Températures par mois
@@ -144,5 +154,3 @@ fig4.write_html("export/fig4_temps_annee_entiere.html")
 
 print("Les graphiques ont été sauvegardés en tant que fichiers HTML.")
 print("Téléchargez-les ou ouvrez-les dans un navigateur.")
-
-# Extraction des data
