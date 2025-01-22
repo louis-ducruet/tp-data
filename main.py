@@ -3,58 +3,88 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 from plotly.offline import plot
+import plotly.graph_objects as go
+
+pd.set_option('future.no_silent_downcasting', True)
+
 
 # Mes fonctions
+def etl_format_input(df):
+    # Convertir les colonnes en numérique et gérer les valeurs manquantes
+    df = df.apply(pd.to_numeric, errors='coerce')
+    # Liste des mois pour référence
+    mois_noms = df.columns.tolist()
+    mois_noms = [mois for mois in mois_noms
+                 if mois != "Jour"]  # Exclure la colonne "Jour" si elle existe
+    # Générer les dates et les températures
+    dates = []
+    temperatures = []
+    for month_idx, month in enumerate(mois_noms):
+        for day_idx, temp in enumerate(df[month]):
+            try:
+                # Créer une date pour chaque jour
+                date = pd.Timestamp(year=2018,
+                                    month=month_idx + 1,
+                                    day=day_idx + 1)
+                dates.append(date.strftime("%d/%m/%Y"))
+                temperatures.append(temp)
+            except ValueError:
+                # Ignorer les jours invalides
+                continue
+    # Créer un DataFrame avec les colonnes souhaitées
+    df_transformed = pd.DataFrame({"Date": dates, "Temperature": temperatures})
+    df_transformed["Date"] = pd.to_datetime(df_transformed['Date'],
+                                            format="%d/%m/%Y")
+    df_transformed = df_transformed.set_index('Date')
+    return df_transformed
+
+
 def standardize(df):
-    for column in df.columns:
-        # Convertir la colonne en numérique, forcer les erreurs à NaN
-        df[column] = pd.to_numeric(df[column], errors='coerce')
-        # Remplace par Nan si valeur trop extreme
-        df.loc[df[column] > 50, column] = np.nan
-        df.loc[df[column] < -30, column] = np.nan     
-        # Remplace par NaN si  valeur trop extreme en local (+/- 15 par rapport aux valeurs de proximité)
-        diff_precedente = df[column].diff().abs()
-        diff_suivante = df[column].shift(-1).diff().abs()
-        condition = (diff_precedente > 15) | (diff_suivante > 15)
-        df.loc[condition, column] = np.nan
-        # Remplacer les NaN (valeurs non numériques) par la moyenne de la colonne
-        mean_value = df[column].mean()
-        df[column].fillna(mean_value, inplace=True)
+    # Range les dates dans l'ordre chronologique
+    df.sort_values(by="Date", inplace=True)
+    print(df_full.head())
+    # Convertir la colonne en numérique, forcer les erreurs à NaN
+    df["Temperature"] = pd.to_numeric(df["Temperature"], errors='coerce')
+    print(df_full.head())
+    # Remplace par Nan si valeur trop extreme
+    df.loc[df["Temperature"] > 50,
+           "Temperature"] = np.nan  # Syracuse Italie 48.8 en 2021
+    print(df_full.head())
+    df.loc[df["Temperature"] < -60,
+           "Temperature"] = np.nan  # Oust-Chtchougor Russie en 1978
+    # Remplace par NaN si  valeur trop extreme en local (+/- 17 par rapport aux valeurs de proximité)
+    diff_precedente = df["Temperature"].diff().abs()
+    diff_suivante = df["Temperature"].shift(-1).diff().abs()
+    condition = (diff_precedente > 17) | (diff_suivante > 17)
+    df.loc[condition, "Temperature"] = np.nan
+    # Remplacer les NaN (valeurs non numériques) par la moyenne des 2 valeurs précédentes et suivantes
+    df["Temperature"] = df["Temperature"].fillna(df["Temperature"].rolling(
+        5, min_periods=1).mean())
     return df
+
 
 # Les dataframmes
 url_part = 'import/tableau_erreur.csv'
 url_full = 'import/tableau.csv'
 
 # Charger les fichiers CSV dans des DataFrames
-df_full = pd.read_csv(url_full)
-df_full = df_full.apply(pd.to_numeric)
-df_part = pd.read_csv(url_part)
+df_full = etl_format_input(pd.read_csv(url_full))
+df_part = etl_format_input(pd.read_csv(url_part))
+standardize(df_full)
 standardize(df_part)
-
 # Moyenne par mois
-mean_full = df_full.mean()
-mean_part = df_part.mean()
+mean_full = df_full.groupby(pd.Grouper(freq='ME'))['Temperature'].mean()
+mean_part = df_part.groupby(pd.Grouper(freq='ME'))['Temperature'].mean()
 
 # Min & Max par mois
-stats_full = df_full.agg(['min', 'max'])
-stats_part = df_part.agg(['min', 'max'])
+stats_full = df_full.groupby(pd.Grouper(freq='ME'))['Temperature'].agg(
+    ['min', 'max'])
+stats_part = df_part.groupby(pd.Grouper(freq='ME'))['Temperature'].agg(
+    ['min', 'max'])
 
 # Min & Max par an
-df_concat_mois_full = pd.concat([
-    df_full["janvier"], df_full["février"], df_full["mars"], df_full["avril"],
-    df_full["mai"], df_full["juin"], df_full["juillet"], df_full["août"],
-    df_full["septembre"], df_full["octobre"], df_full["novembre"],
-    df_full["décembre"]
-], ignore_index=True)
-stats_full_annual = df_concat_mois_full.agg(['min', 'max'])
-df_concat_mois_part = pd.concat([
-    df_part["janvier"], df_part["février"], df_part["mars"], df_part["avril"],
-    df_part["mai"], df_part["juin"], df_part["juillet"], df_part["août"],
-    df_part["septembre"], df_part["octobre"], df_part["novembre"],
-    df_part["décembre"]
-], ignore_index=True)
-stats_part_annual = df_concat_mois_part.agg(['min', 'max'])
+stats_full_annual = df_full.agg(['min', 'max'])
+stats_part_annual = df_part.agg(['min', 'max'])
 
 # Ecart type par mois
 std_full = df_full.std()
@@ -82,79 +112,122 @@ print(
 print(f"\nÉcart-type pour le DataFrame complet : \n{std_full}")
 print(f"\nÉcart-type pour le DataFrame incomplet : \n{std_part}")
 
-# Charger les données (assurez-vous que df_full est correctement défini)
-# Remplir les valeurs manquantes par la moyenne des colonnes
-df_full = df_full.fillna(df_full.mean())
+nomMois = [
+    "Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août",
+    "Septembre", "Octobre", "Novembre", "Décembre"
+]
 
-# Restructurer les données pour un format long
-df_full['Jour'] = df_full.index + 1  # Ajouter une colonne pour les jours
-df_long = df_full.melt(id_vars=['Jour'], var_name='Mois', value_name='Température')
+# Init Graph Full
+df_full_graph = pd.DataFrame({
+    "Date": df_full.index,
+    "Jour": df_full.index.day,
+    "Mois": df_full.index.month - 1,
+    "Temperature": df_full["Temperature"]
+})
+df_full_graph["Mois"] = df_full_graph['Mois'].apply(lambda x: nomMois[x])
+df_full_graph = df_full_graph.set_index('Date')
 
 # Première figure : Températures par mois
-fig1 = px.line(
-    df_long,
-    x='Jour',
-    y='Température',
-    color='Mois',
-    title="Courbes des températures par mois",
-    labels={'Jour': 'Jour', 'Température': 'Température (°C)', 'Mois': 'Mois'},
-    hover_data={'Jour': True, 'Mois': True, 'Température': True}
-)
+fig1 = px.line(df_full_graph,
+               x='Jour',
+               y='Temperature',
+               color='Mois',
+               title="Courbes des températures par mois",
+               labels={
+                   'Jour': 'Jour',
+                   'Temperature': 'Température (°C)',
+                   'Mois': 'Mois'
+               },
+               hover_data={
+                   'Jour': True,
+                   'Mois': True,
+                   'Temperature': True
+               })
 
 # Deuxième figure : Températures sur l'année entière
-fig2 = px.line(
-    df_long,
-    x=df_long.index,
-    y='Température',
-    title="Températures sur l'année entière",
-    labels={'index': 'Jours (1 à 365)', 'Température': 'Température (°C)'},
-    hover_data={'Jour': True, 'Mois': True, 'Température': True}
-)
+fig2 = px.line(df_full_graph,
+               x=df_full_graph.index,
+               y='Temperature',
+               title="Températures sur l'année entière",
+               labels={
+                   'index': 'Jours (1 à 365)',
+                   'Temperature': 'Température (°C)'
+               },
+               hover_data={
+                   'Jour': True,
+                   'Mois': True,
+                   'Temperature': True
+               })
 
-# Sauvegarder les graphiques comme fichiers HTML
-fig1.write_html("export/fig1_courbes_par_mois.html")
-fig2.write_html("export/fig2_temps_annee_entiere.html")
-
-print("Les graphiques ont été sauvegardés en tant que fichiers HTML.")
-print("Téléchargez-les ou ouvrez-les dans un navigateur.")
-
-
-#DF_PART
-
-# Remplacer les valeurs non numériques par NaN et interpoler les données manquantes
-df_part = df_part.apply(pd.to_numeric, errors='coerce')
-df_part = df_part.interpolate(method='linear', axis=0)
-
-# Ajouter une colonne pour les jours
-df_part['Jour'] = df_part.index + 1
-
-# Restructurer les données pour un format long
-df_long = df_part.melt(id_vars=['Jour'], var_name='Mois', value_name='Température')
+# Init Graph Part
+df_part_graph = pd.DataFrame({
+    "Date": df_part.index,
+    "Jour": df_part.index.day,
+    "Mois": df_part.index.month - 1,
+    "Temperature": df_part["Temperature"]
+})
+df_part_graph["Mois"] = df_part_graph['Mois'].apply(lambda x: nomMois[x])
+df_part_graph = df_part_graph.set_index('Date')
 
 # Troisième figure : Températures par mois
-fig3 = px.line(
-    df_long,
-    x='Jour',
-    y='Température',
-    color='Mois',
-    title="Courbes des températures par mois",
-    labels={'Jour': 'Jour', 'Température': 'Température (°C)', 'Mois': 'Mois'},
-    hover_data={'Jour': True, 'Mois': True, 'Température': True}
-)
+fig3 = px.line(df_part_graph,
+               x='Jour',
+               y='Temperature',
+               color='Mois',
+               title="Courbes des températures par mois",
+               labels={
+                   'Jour': 'Jour',
+                   'Temperature': 'Température (°C)',
+                   'Mois': 'Mois'
+               },
+               hover_data={
+                   'Jour': True,
+                   'Mois': True,
+                   'Temperature': True
+               })
 
 # Quatrième figure : Températures sur l'année entière
-fig4 = px.line(
-    df_long,
-    x=df_long.index,
-    y='Température',
-    title="Températures sur l'année entière",
-    labels={'index': 'Jours (1 à 365)', 'Température': 'Température (°C)'},
-    hover_data={'Jour': True, 'Mois': True, 'Température': True}
-)
+fig4 = px.line(df_part_graph,
+               x=df_part_graph.index,
+               y='Temperature',
+               title="Températures sur l'année entière",
+               labels={
+                   'index': 'Jours (1 à 365)',
+                   'Température': 'Température (°C)'
+               },
+               hover_data={
+                   'Jour': True,
+                   'Mois': True,
+                   'Temperature': True
+               })
 
-# Sauvegarder les graphiques comme fichiers HTML
+# Graph de comparaison
+df_full_graph["datasource"] = "complet"
+df_part_graph["datasource"] = "avec erreur"
+df_full_graph.reset_index(inplace=True)
+df_part_graph.reset_index(inplace=True)
+
+df_graph5 = pd.concat([df_full_graph, df_part_graph], ignore_index=True)
+
+fig5 = px.line(df_graph5,
+               x=df_graph5["Date"],
+               y='Temperature',
+               color='datasource',
+               title="Températures sur l'année entière",
+               labels={
+                   'index': 'Jours (1 à 365)',
+                   'Température': 'Température (°C)'
+               },
+               hover_data={
+                   'Jour': True,
+                   'Mois': True,
+                   'Temperature': True
+               })
+
+fig1.write_html("export/fig1_courbes_par_mois.html")
+fig2.write_html("export/fig2_temps_annee_entiere.html")
 fig3.write_html("export/fig3_courbes_par_mois.html")
 fig4.write_html("export/fig4_temps_annee_entiere.html")
-
+fig5.write_html("export/fig5_temps_annee_comparatif.html")
 print("Les graphiques ont été sauvegardés en tant que fichiers HTML.")
 print("Téléchargez-les ou ouvrez-les dans un navigateur.")
