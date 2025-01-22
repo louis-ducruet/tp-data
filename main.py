@@ -90,7 +90,7 @@ url_opendata = 'import/city_temperature.csv'
 df_full = etl_format_input(pd.read_csv(url_full))
 df_part = etl_format_input(pd.read_csv(url_part))
 df_observatoire = etl_format_observatoire(pd.read_csv(url_observatoire))
-df_opendata = etl_format_opendata(pd.read_csv(url_opendata))
+df_opendata = etl_format_opendata(pd.read_csv(url_opendata, dtype={"Region": "string", "Country": "string", "Sate": "string", "City": "string", "Month": "int", "Day": "int", "Year": "int", "AvgTemperature": float}))
 print("Opendata :", df_opendata.head())
 standardize(df_full)
 standardize(df_part)
