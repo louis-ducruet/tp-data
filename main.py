@@ -65,6 +65,8 @@ def etl_format_opendata(df):
     # Convertir les colonnes en numérique et gérer les valeurs manquantes
     df["Temperature"] = df["AvgTemperature"].apply(pd.to_numeric,
                                                    errors='coerce')
+    # Convertion °F en °C
+    df["Temperature"] = round((df["Temperature"] - 32) * 5 / 9, 1)
     # Générer les dates et les températures
     df["Date"] = pd.to_datetime({
         'year': df['Year'],
@@ -96,9 +98,8 @@ def standardize(df):
     diff_suivante = df["Temperature"].shift(-1).diff().abs()
     condition = (diff_precedente > 17) | (diff_suivante > 17)
     df.loc[condition, "Temperature"] = np.nan
-    # Remplacer les NaN (valeurs non numériques) par la moyenne des 2 valeurs précédentes et suivantes
-    df["Temperature"] = df["Temperature"].fillna(df["Temperature"].rolling(
-        5, min_periods=1).mean())
+    # Remplacer les NaN (valeurs non numériques) par la moyenne des valeurs à proximitées
+    df["Temperature"].interpolate(method='linear', inplace=True)
     return df
 
 
@@ -307,10 +308,11 @@ df_opendata_graph = pd.DataFrame({
 })
 df_opendata_graph["Mois"] = df_opendata_graph['Mois'].apply(
     lambda x: nomMois[x])
-df_opendata_graph = df_opendata_graph.set_index('Date')
 df_part_graph["Ville"] = "Ville Mystère"
 
 df_graph6 = pd.concat([df_opendata_graph, df_part_graph], ignore_index=True)
+
+print(df_opendata_graph["Date"].head())
 
 fig6 = px.line(df_graph6,
                x=df_graph6["Date"],
@@ -335,3 +337,17 @@ fig5.write_html("export/fig5_temps_annee_comparatif.html")
 fig6.write_html("export/fig6_temps_annee_europe.html")
 print("Les graphiques ont été sauvegardés en tant que fichiers HTML.")
 print("Téléchargez-les ou ouvrez-les dans un navigateur.")
+
+# Fusionner les deux DataFrames sur la colonne 'date'
+merged_df = pd.merge(df_opendata_graph, df_part, on='Date', suffixes=('_df1', '_df2'))
+
+# Calculer la différence absolue entre les températures
+merged_df['diff'] = np.abs(merged_df['Temperature_df1'] - merged_df['Temperature_df2'])
+
+# Calculer la somme des différences par ville
+diff_by_city = merged_df.groupby('Ville')['diff'].sum()
+
+print("Top 10 des villes les plus proches en terme de température : ", diff_by_city.sort_values().head(10))
+# Trouver la ville avec la différence minimale (le meilleur match)
+best_match_city = diff_by_city.idxmin()
+print(f"La ville qui match le plus avec le DataFrame de référence est : {best_match_city}")
