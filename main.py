@@ -259,11 +259,40 @@ fig5 = px.line(df_graph5,
                    'Temperature': True
                })
 
+df_opendata_graph = pd.DataFrame({
+    "Date": df_opendata.index,
+    "Jour": df_opendata.index.day,
+    "Mois": df_opendata.index.month - 1,
+    "Temperature": df_opendata["Temperature"],
+    "Ville": df_opendata["Ville"]
+})
+df_opendata_graph["Mois"] = df_opendata_graph['Mois'].apply(lambda x: nomMois[x])
+df_opendata_graph = df_opendata_graph.set_index('Date')
+df_part_graph["Ville"] = "Ville Mystère"
+
+df_graph6 = pd.concat([df_opendata_graph, df_part_graph], ignore_index=True)
+
+fig6 = px.line(df_graph6,
+       x=df_graph6["Date"],
+       y='Temperature',
+       color='Ville',
+       title="Températures sur l'année entière",
+       labels={
+           'index': 'Jours (1 à 365)',
+           'Température': 'Température (°C)'
+       },
+       hover_data={
+           'Jour': True,
+           'Mois': True,
+           'Temperature': True
+       })
+
 fig1.write_html("export/fig1_courbes_par_mois.html")
 fig2.write_html("export/fig2_temps_annee_entiere.html")
 fig3.write_html("export/fig3_courbes_par_mois.html")
 fig4.write_html("export/fig4_temps_annee_entiere.html")
 fig5.write_html("export/fig5_temps_annee_comparatif.html")
+fig6.write_html("export/fig6_temps_annee_europe.html")
 print("Les graphiques ont été sauvegardés en tant que fichiers HTML.")
 print("Téléchargez-les ou ouvrez-les dans un navigateur.")
 
