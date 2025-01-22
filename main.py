@@ -260,9 +260,9 @@ fig5 = px.line(df_graph5,
                })
 
 df_opendata_graph = pd.DataFrame({
-    "Date": df_opendata.index,
-    "Jour": df_opendata.index.day,
-    "Mois": df_opendata.index.month - 1,
+    "Date": df_opendata["Date"],
+    "Jour": df_opendata["Date"].day,
+    "Mois": df_opendata["Date"].month - 1,
     "Temperature": df_opendata["Temperature"],
     "Ville": df_opendata["Ville"]
 })
