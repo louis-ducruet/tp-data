@@ -180,10 +180,23 @@ df_full_graph = pd.DataFrame({
     "Date": df_full.index,
     "Jour": df_full.index.day,
     "Mois": df_full.index.month - 1,
-    "Temperature": df_full["Temperature"]
+    "Temperature": df_full["Temperature"],
 })
 df_full_graph["Mois"] = df_full_graph['Mois'].apply(lambda x: nomMois[x])
 df_full_graph = df_full_graph.set_index('Date')
+
+df_full_graph['Moyenne Annuelle'] = round(df_full_graph.groupby(df_full_graph.index.year)['Temperature'].transform('mean'), 1)
+df_full_graph['Moyenne Mentuelle'] = round(df_full_graph.groupby(df_full_graph.index.month)['Temperature'].transform('mean'), 1)
+df_full_graph['Moyenne glissante (30j)'] = round(df_full_graph['Temperature'].rolling(window=15, min_periods=1).mean(), 1)
+df_full_graph['Ecart-type Annuel'] = round(df_full_graph.groupby(df_full_graph.index.year)['Temperature'].transform('std'), 1)
+df_full_graph['Ecart-type Mentuel'] = round(df_full_graph.groupby(df_full_graph.index.month)['Temperature'].transform('std'), 1)
+df_full_graph['Ecart-type glissant (30j)'] = round(df_full_graph['Temperature'].rolling(window=15, min_periods=1).std(), 1)
+df_full_graph['Min Annuel'] = round(df_full_graph.groupby(df_full_graph.index.year)['Temperature'].transform('min'), 1)
+df_full_graph['Min Mentuel'] = round(df_full_graph.groupby(df_full_graph.index.month)['Temperature'].transform('min'), 1)
+df_full_graph['Min glissant (30j)'] = round(df_full_graph['Temperature'].rolling(window=15, min_periods=1).min(), 1)
+df_full_graph['Max Annuel'] = round(df_full_graph.groupby(df_full_graph.index.year)['Temperature'].transform('max'), 1)
+df_full_graph['Max Mentuel'] = round(df_full_graph.groupby(df_full_graph.index.month)['Temperature'].transform('max'), 1)
+df_full_graph['Max glissant (30j)'] = round(df_full_graph['Temperature'].rolling(window=15, min_periods=1).max(), 1)
 
 # Première figure : Températures par mois
 fig1 = px.line(df_full_graph,
@@ -197,10 +210,21 @@ fig1 = px.line(df_full_graph,
                    'Mois': 'Mois'
                },
                hover_data={
-                   'Jour': True,
-                   'Mois': True,
-                   'Temperature': True
+                   'Temperature': True,
+                   'Moyenne Annuelle': True,
+                   'Moyenne Mentuelle': True,
+                   'Moyenne glissante (30j)': True,
+                   'Ecart-type Annuel': True,
+                   'Ecart-type Mentuel': True,
+                   'Ecart-type glissant (30j)': True,
+                   'Min Annuel': True,
+                   'Min Mentuel': True,
+                   'Min glissant (30j)': True,
+                   'Max Annuel': True,
+                   'Max Mentuel': True,
+                   'Max glissant (30j)': True
                })
+
 
 # Deuxième figure : Températures sur l'année entière
 fig2 = px.line(df_full_graph,
@@ -212,9 +236,19 @@ fig2 = px.line(df_full_graph,
                    'Temperature': 'Température (°C)'
                },
                hover_data={
-                   'Jour': True,
-                   'Mois': True,
-                   'Temperature': True
+                   'Temperature': True,
+                   'Moyenne Annuelle': True,
+                  'Moyenne Mentuelle': True,
+                  'Moyenne glissante (30j)': True,
+                  'Ecart-type Annuel': True,
+                  'Ecart-type Mentuel': True,
+                  'Ecart-type glissant (30j)': True,
+                  'Min Annuel': True,
+                  'Min Mentuel': True,
+                  'Min glissant (30j)': True,
+                  'Max Annuel': True,
+                  'Max Mentuel': True,
+                  'Max glissant (30j)': True
                })
 
 # Init Graph Part
@@ -226,6 +260,19 @@ df_part_graph = pd.DataFrame({
 })
 df_part_graph["Mois"] = df_part_graph['Mois'].apply(lambda x: nomMois[x])
 df_part_graph = df_part_graph.set_index('Date')
+
+df_part_graph['Moyenne Annuelle'] = round(df_part_graph.groupby(df_part_graph.index.year)['Temperature'].transform('mean'), 1)
+df_part_graph['Moyenne Mentuelle'] = round(df_part_graph.groupby(df_part_graph.index.month)['Temperature'].transform('mean'), 1)
+df_part_graph['Moyenne glissante (30j)'] = round(df_part_graph['Temperature'].rolling(window=15, min_periods=1).mean(), 1)
+df_part_graph['Ecart-type Annuel'] = round(df_part_graph.groupby(df_part_graph.index.year)['Temperature'].transform('std'), 1)
+df_part_graph['Ecart-type Mentuel'] = round(df_part_graph.groupby(df_part_graph.index.month)['Temperature'].transform('std'), 1)
+df_part_graph['Ecart-type glissant (30j)'] = round(df_part_graph['Temperature'].rolling(window=15, min_periods=1).std(), 1)
+df_part_graph['Min Annuel'] = round(df_part_graph.groupby(df_part_graph.index.year)['Temperature'].transform('min'), 1)
+df_part_graph['Min Mentuel'] = round(df_part_graph.groupby(df_part_graph.index.month)['Temperature'].transform('min'), 1)
+df_part_graph['Min glissant (30j)'] = round(df_part_graph['Temperature'].rolling(window=15, min_periods=1).min(), 1)
+df_part_graph['Max Annuel'] = round(df_part_graph.groupby(df_part_graph.index.year)['Temperature'].transform('max'), 1)
+df_part_graph['Max Mentuel'] = round(df_part_graph.groupby(df_part_graph.index.month)['Temperature'].transform('max'), 1)
+df_part_graph['Max glissant (30j)'] = round(df_part_graph['Temperature'].rolling(window=15, min_periods=1).max(), 1)
 
 df_observatoire_graph = pd.DataFrame({
     "Date":
@@ -253,9 +300,19 @@ fig3 = px.line(df_part_graph,
                    'Mois': 'Mois'
                },
                hover_data={
-                   'Jour': True,
-                   'Mois': True,
-                   'Temperature': True
+                   'Temperature': True,
+                   'Moyenne Annuelle': True,
+                  'Moyenne Mentuelle': True,
+                  'Moyenne glissante (30j)': True,
+                  'Ecart-type Annuel': True,
+                  'Ecart-type Mentuel': True,
+                  'Ecart-type glissant (30j)': True,
+                  'Min Annuel': True,
+                  'Min Mentuel': True,
+                  'Min glissant (30j)': True,
+                  'Max Annuel': True,
+                  'Max Mentuel': True,
+                  'Max glissant (30j)': True
                })
 
 # Quatrième figure : Températures sur l'année entière
@@ -268,9 +325,19 @@ fig4 = px.line(df_part_graph,
                    'Température': 'Température (°C)'
                },
                hover_data={
-                   'Jour': True,
-                   'Mois': True,
-                   'Temperature': True
+                   'Temperature': True,
+                   'Moyenne Annuelle': True,
+                     'Moyenne Mentuelle': True,
+                     'Moyenne glissante (30j)': True,
+                     'Ecart-type Annuel': True,
+                     'Ecart-type Mentuel': True,
+                     'Ecart-type glissant (30j)': True,
+                     'Min Annuel': True,
+                     'Min Mentuel': True,
+                     'Min glissant (30j)': True,
+                     'Max Annuel': True,
+                     'Max Mentuel': True,
+                     'Max glissant (30j)': True
                })
 
 # Graph de comparaison
@@ -284,6 +351,19 @@ df_observatoire_graph.reset_index(inplace=True)
 df_graph5 = pd.concat([df_full_graph, df_part_graph, df_observatoire_graph],
                       ignore_index=True)
 
+df_graph5['Moyenne Annuelle'] = round(df_graph5.groupby(df_graph5["Date"].dt.year)['Temperature'].transform('mean'), 1)
+df_graph5['Moyenne Mentuelle'] = round(df_graph5.groupby(df_graph5["Date"].dt.month)['Temperature'].transform('mean'), 1)
+df_graph5['Moyenne glissante (30j)'] = round(df_graph5['Temperature'].rolling(window=15, min_periods=1).mean(), 1)
+df_graph5['Ecart-type Annuel'] = round(df_graph5.groupby(df_graph5["Date"].dt.year)['Temperature'].transform('std'), 1)
+df_graph5['Ecart-type Mentuel'] = round(df_graph5.groupby(df_graph5["Date"].dt.month)['Temperature'].transform('std'), 1)
+df_graph5['Ecart-type glissant (30j)'] = round(df_graph5['Temperature'].rolling(window=15, min_periods=1).std(), 1)
+df_graph5['Min Annuel'] = round(df_graph5.groupby(df_graph5["Date"].dt.year)['Temperature'].transform('min'), 1)
+df_graph5['Min Mentuel'] = round(df_graph5.groupby(df_graph5["Date"].dt.month)['Temperature'].transform('min'), 1)
+df_graph5['Min glissant (30j)'] = round(df_graph5['Temperature'].rolling(window=15, min_periods=1).min(), 1)
+df_graph5['Max Annuel'] = round(df_graph5.groupby(df_graph5["Date"].dt.year)['Temperature'].transform('max'), 1)
+df_graph5['Max Mentuel'] = round(df_graph5.groupby(df_graph5["Date"].dt.month)['Temperature'].transform('max'), 1)
+df_graph5['Max glissant (30j)'] = round(df_graph5['Temperature'].rolling(window=15, min_periods=1).max(), 1)
+
 fig5 = px.line(df_graph5,
                x=df_graph5["Date"],
                y='Temperature',
@@ -294,9 +374,19 @@ fig5 = px.line(df_graph5,
                    'Température': 'Température (°C)'
                },
                hover_data={
-                   'Jour': True,
-                   'Mois': True,
-                   'Temperature': True
+                   'Temperature': True,
+                   'Moyenne Annuelle': True,
+                     'Moyenne Mentuelle': True,
+                     'Moyenne glissante (30j)': True,
+                     'Ecart-type Annuel': True,
+                     'Ecart-type Mentuel': True,
+                     'Ecart-type glissant (30j)': True,
+                     'Min Annuel': True,
+                     'Min Mentuel': True,
+                     'Min glissant (30j)': True,
+                     'Max Annuel': True,
+                     'Max Mentuel': True,
+                     'Max glissant (30j)': True
                })
 
 df_opendata_graph = pd.DataFrame({
