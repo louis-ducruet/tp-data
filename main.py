@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 
 pd.set_option('future.no_silent_downcasting', True)
 
+
 # Mes fonctions
 def etl_format_input(df):
     # Convertir les colonnes en numérique et gérer les valeurs manquantes
@@ -14,7 +15,7 @@ def etl_format_input(df):
     # Liste des mois pour référence
     mois_noms = df.columns.tolist()
     mois_noms = [mois for mois in mois_noms
-                 if mois != "Jour"] # Exclure la colonne "Jour" si elle existe
+                 if mois != "Jour"]  # Exclure la colonne "Jour" si elle existe
     # Générer les dates et les températures
     dates = []
     temperatures = []
@@ -37,28 +38,48 @@ def etl_format_input(df):
     df_transformed = df_transformed.set_index('Date')
     return df_transformed
 
+
 def etl_format_observatoire(df):
     # Convertir les colonnes en numérique et gérer les valeurs manquantes
-    df["Temperature"] = df["Air temperature (degC)"].apply(pd.to_numeric, errors='coerce')
+    df["Temperature"] = df["Air temperature (degC)"].apply(pd.to_numeric,
+                                                           errors='coerce')
     # Générer les dates et les températures
-    df["Date"] = pd.to_datetime({'year': df['Year'], 'month': df['m'], 'day': df['d']})
+    df["Date"] = pd.to_datetime({
+        'year': df['Year'],
+        'month': df['m'],
+        'day': df['d']
+    })
     # Créer un DataFrame avec les colonnes souhaitées
-    df_transformed = pd.DataFrame({"Date": df["Date"], "Temperature": df["Temperature"]})
+    df_transformed = pd.DataFrame({
+        "Date": df["Date"],
+        "Temperature": df["Temperature"]
+    })
     df_transformed = df_transformed.set_index('Date')
     return df_transformed
+
 
 def etl_format_opendata(df):
     # Supprime les données non utilisées (Non Europe et Non 2018)
     drop_condition = (df["Region"] != "Europe") | (df["Year"] != 2018)
-    df.drop(df[drop_condition].index, inplace = True)
+    df.drop(df[drop_condition].index, inplace=True)
     # Convertir les colonnes en numérique et gérer les valeurs manquantes
-    df["Temperature"] = df["AvgTemperature"].apply(pd.to_numeric, errors='coerce')
+    df["Temperature"] = df["AvgTemperature"].apply(pd.to_numeric,
+                                                   errors='coerce')
     # Générer les dates et les températures
-    df["Date"] = pd.to_datetime({'year': df['Year'], 'month': df['Month'], 'day': df['Day']})
+    df["Date"] = pd.to_datetime({
+        'year': df['Year'],
+        'month': df['Month'],
+        'day': df['Day']
+    })
     df["Ville"] = df["City"]
     # Créer un DataFrame avec les colonnes souhaitées
-    df_transformed = pd.DataFrame({"Date": df["Date"], "Temperature": df["Temperature"], "Ville": df["Ville"]})
+    df_transformed = pd.DataFrame({
+        "Date": df["Date"],
+        "Temperature": df["Temperature"],
+        "Ville": df["Ville"]
+    })
     return df_transformed
+
 
 def standardize(df):
     # Range les dates dans l'ordre chronologique
@@ -80,6 +101,7 @@ def standardize(df):
         5, min_periods=1).mean())
     return df
 
+
 # Les dataframmes
 url_part = 'import/tableau_erreur.csv'
 url_full = 'import/tableau.csv'
@@ -90,7 +112,18 @@ url_opendata = 'import/city_temperature.csv'
 df_full = etl_format_input(pd.read_csv(url_full))
 df_part = etl_format_input(pd.read_csv(url_part))
 df_observatoire = etl_format_observatoire(pd.read_csv(url_observatoire))
-df_opendata = etl_format_opendata(pd.read_csv(url_opendata, dtype={"Region": "string", "Country": "string", "Sate": "string", "City": "string", "Month": "int", "Day": "int", "Year": "int", "AvgTemperature": float}))
+df_opendata = etl_format_opendata(
+    pd.read_csv(url_opendata,
+                dtype={
+                    "Region": "string",
+                    "Country": "string",
+                    "Sate": "string",
+                    "City": "string",
+                    "Month": "int",
+                    "Day": "int",
+                    "Year": "int",
+                    "AvgTemperature": float
+                }))
 standardize(df_full)
 standardize(df_part)
 standardize(df_observatoire)
@@ -194,12 +227,17 @@ df_part_graph["Mois"] = df_part_graph['Mois'].apply(lambda x: nomMois[x])
 df_part_graph = df_part_graph.set_index('Date')
 
 df_observatoire_graph = pd.DataFrame({
-    "Date": df_observatoire.index,
-    "Jour": df_observatoire.index.day,
-    "Mois": df_observatoire.index.month - 1,
-    "Temperature": df_observatoire["Temperature"]
+    "Date":
+    df_observatoire.index,
+    "Jour":
+    df_observatoire.index.day,
+    "Mois":
+    df_observatoire.index.month - 1,
+    "Temperature":
+    df_observatoire["Temperature"]
 })
-df_observatoire_graph["Mois"] = df_observatoire_graph['Mois'].apply(lambda x: nomMois[x])
+df_observatoire_graph["Mois"] = df_observatoire_graph['Mois'].apply(
+    lambda x: nomMois[x])
 df_observatoire_graph = df_observatoire_graph.set_index('Date')
 
 # Troisième figure : Températures par mois
@@ -242,7 +280,8 @@ df_full_graph.reset_index(inplace=True)
 df_part_graph.reset_index(inplace=True)
 df_observatoire_graph.reset_index(inplace=True)
 
-df_graph5 = pd.concat([df_full_graph, df_part_graph, df_observatoire_graph], ignore_index=True)
+df_graph5 = pd.concat([df_full_graph, df_part_graph, df_observatoire_graph],
+                      ignore_index=True)
 
 fig5 = px.line(df_graph5,
                x=df_graph5["Date"],
@@ -260,32 +299,33 @@ fig5 = px.line(df_graph5,
                })
 
 df_opendata_graph = pd.DataFrame({
-    "Date": df_opendata["Date"].dt,
+    "Date": df_opendata["Date"],
     "Jour": df_opendata["Date"].dt.day,
     "Mois": df_opendata["Date"].dt.month - 1,
     "Temperature": df_opendata["Temperature"],
     "Ville": df_opendata["Ville"]
 })
-df_opendata_graph["Mois"] = df_opendata_graph['Mois'].apply(lambda x: nomMois[x])
+df_opendata_graph["Mois"] = df_opendata_graph['Mois'].apply(
+    lambda x: nomMois[x])
 df_opendata_graph = df_opendata_graph.set_index('Date')
 df_part_graph["Ville"] = "Ville Mystère"
 
 df_graph6 = pd.concat([df_opendata_graph, df_part_graph], ignore_index=True)
 
 fig6 = px.line(df_graph6,
-       x=df_graph6["Date"],
-       y='Temperature',
-       color='Ville',
-       title="Températures sur l'année entière",
-       labels={
-           'index': 'Jours (1 à 365)',
-           'Température': 'Température (°C)'
-       },
-       hover_data={
-           'Jour': True,
-           'Mois': True,
-           'Temperature': True
-       })
+               x=df_graph6["Date"],
+               y='Temperature',
+               color='Ville',
+               title="Températures sur l'année entière",
+               labels={
+                   'index': 'Jours (1 à 365)',
+                   'Température': 'Température (°C)'
+               },
+               hover_data={
+                   'Jour': True,
+                   'Mois': True,
+                   'Temperature': True
+               })
 
 fig1.write_html("export/fig1_courbes_par_mois.html")
 fig2.write_html("export/fig2_temps_annee_entiere.html")
@@ -295,4 +335,3 @@ fig5.write_html("export/fig5_temps_annee_comparatif.html")
 fig6.write_html("export/fig6_temps_annee_europe.html")
 print("Les graphiques ont été sauvegardés en tant que fichiers HTML.")
 print("Téléchargez-les ou ouvrez-les dans un navigateur.")
-
