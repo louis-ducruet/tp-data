@@ -47,6 +47,19 @@ def etl_format_observatoire(df):
     df_transformed = df_transformed.set_index('Date')
     return df_transformed
 
+def etl_format_opendata(df):
+    # Supprime les données non utilisées (Non Europe et Non 2018)
+    drop_condition = (df["Region"] != "Europe" | df["Year"] != 2018)
+    df.drop(df[drop_condition].index, inplace = True)
+    # Convertir les colonnes en numérique et gérer les valeurs manquantes
+    df["Temperature"] = df["AvgTemperature"].apply(pd.to_numeric, errors='coerce')
+    # Générer les dates et les températures
+    df["Date"] = pd.to_datetime({'year': df['Year'], 'month': df['Month'], 'day': df['Day']})
+    df["Ville"] = df["City"]
+    # Créer un DataFrame avec les colonnes souhaitées
+    df_transformed = pd.DataFrame({"Date": df["Date"], "Temperature": df["Temperature"], "Ville": df["Ville"]})
+    return df_transformed
+
 def standardize(df):
     # Range les dates dans l'ordre chronologique
     df.sort_values(by="Date", inplace=True)
@@ -71,14 +84,18 @@ def standardize(df):
 url_part = 'import/tableau_erreur.csv'
 url_full = 'import/tableau.csv'
 url_observatoire = 'import/observatoire.csv'
+url_opendata = 'import/city_temperature.csv'
 
 # Charger les fichiers CSV dans des DataFrames
 df_full = etl_format_input(pd.read_csv(url_full))
 df_part = etl_format_input(pd.read_csv(url_part))
 df_observatoire = etl_format_observatoire(pd.read_csv(url_observatoire))
+df_opendata = etl_format_opendata(pd.read_csv(url_opendata))
+print("Opendata :", df_opendata.head())
 standardize(df_full)
 standardize(df_part)
 standardize(df_observatoire)
+
 # Moyenne par mois
 mean_full = df_full.groupby(pd.Grouper(freq='ME'))['Temperature'].mean()
 mean_part = df_part.groupby(pd.Grouper(freq='ME'))['Temperature'].mean()
@@ -218,8 +235,8 @@ fig4 = px.line(df_part_graph,
                })
 
 # Graph de comparaison
-df_full_graph["datasource"] = "complet"
-df_part_graph["datasource"] = "avec erreur"
+df_full_graph["datasource"] = "cible propre"
+df_part_graph["datasource"] = "cible réel"
 df_observatoire_graph["datasource"] = "observatoire Finlande"
 df_full_graph.reset_index(inplace=True)
 df_part_graph.reset_index(inplace=True)
