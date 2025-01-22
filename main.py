@@ -7,7 +7,6 @@ import plotly.graph_objects as go
 
 pd.set_option('future.no_silent_downcasting', True)
 
-
 # Mes fonctions
 def etl_format_input(df):
     # Convertir les colonnes en numérique et gérer les valeurs manquantes
@@ -15,7 +14,7 @@ def etl_format_input(df):
     # Liste des mois pour référence
     mois_noms = df.columns.tolist()
     mois_noms = [mois for mois in mois_noms
-                 if mois != "Jour"]  # Exclure la colonne "Jour" si elle existe
+                 if mois != "Jour"] # Exclure la colonne "Jour" si elle existe
     # Générer les dates et les températures
     dates = []
     temperatures = []
@@ -38,18 +37,24 @@ def etl_format_input(df):
     df_transformed = df_transformed.set_index('Date')
     return df_transformed
 
+def etl_format_observatoire(df):
+    # Convertir les colonnes en numérique et gérer les valeurs manquantes
+    df["Temperature"] = df["Air temperature (degC)"].apply(pd.to_numeric, errors='coerce')
+    # Générer les dates et les températures
+    df["Date"] = pd.to_datetime({'year': df['Year'], 'month': df['m'], 'day': df['d']})
+    # Créer un DataFrame avec les colonnes souhaitées
+    df_transformed = pd.DataFrame({"Date": df["Date"], "Temperature": df["Temperature"]})
+    df_transformed = df_transformed.set_index('Date')
+    return df_transformed
 
 def standardize(df):
     # Range les dates dans l'ordre chronologique
     df.sort_values(by="Date", inplace=True)
-    print(df_full.head())
     # Convertir la colonne en numérique, forcer les erreurs à NaN
     df["Temperature"] = pd.to_numeric(df["Temperature"], errors='coerce')
-    print(df_full.head())
     # Remplace par Nan si valeur trop extreme
     df.loc[df["Temperature"] > 50,
            "Temperature"] = np.nan  # Syracuse Italie 48.8 en 2021
-    print(df_full.head())
     df.loc[df["Temperature"] < -60,
            "Temperature"] = np.nan  # Oust-Chtchougor Russie en 1978
     # Remplace par NaN si  valeur trop extreme en local (+/- 17 par rapport aux valeurs de proximité)
@@ -62,16 +67,18 @@ def standardize(df):
         5, min_periods=1).mean())
     return df
 
-
 # Les dataframmes
 url_part = 'import/tableau_erreur.csv'
 url_full = 'import/tableau.csv'
+url_observatoire = 'import/observatoire.csv'
 
 # Charger les fichiers CSV dans des DataFrames
 df_full = etl_format_input(pd.read_csv(url_full))
 df_part = etl_format_input(pd.read_csv(url_part))
+df_observatoire = etl_format_observatoire(pd.read_csv(url_observatoire))
 standardize(df_full)
 standardize(df_part)
+standardize(df_observatoire)
 # Moyenne par mois
 mean_full = df_full.groupby(pd.Grouper(freq='ME'))['Temperature'].mean()
 mean_part = df_part.groupby(pd.Grouper(freq='ME'))['Temperature'].mean()
@@ -169,6 +176,15 @@ df_part_graph = pd.DataFrame({
 df_part_graph["Mois"] = df_part_graph['Mois'].apply(lambda x: nomMois[x])
 df_part_graph = df_part_graph.set_index('Date')
 
+df_observatoire_graph = pd.DataFrame({
+    "Date": df_observatoire.index,
+    "Jour": df_observatoire.index.day,
+    "Mois": df_observatoire.index.month - 1,
+    "Temperature": df_observatoire["Temperature"]
+})
+df_observatoire_graph["Mois"] = df_observatoire_graph['Mois'].apply(lambda x: nomMois[x])
+df_observatoire_graph = df_observatoire_graph.set_index('Date')
+
 # Troisième figure : Températures par mois
 fig3 = px.line(df_part_graph,
                x='Jour',
@@ -204,10 +220,12 @@ fig4 = px.line(df_part_graph,
 # Graph de comparaison
 df_full_graph["datasource"] = "complet"
 df_part_graph["datasource"] = "avec erreur"
+df_observatoire_graph["datasource"] = "observatoire Finlande"
 df_full_graph.reset_index(inplace=True)
 df_part_graph.reset_index(inplace=True)
+df_observatoire_graph.reset_index(inplace=True)
 
-df_graph5 = pd.concat([df_full_graph, df_part_graph], ignore_index=True)
+df_graph5 = pd.concat([df_full_graph, df_part_graph, df_observatoire_graph], ignore_index=True)
 
 fig5 = px.line(df_graph5,
                x=df_graph5["Date"],
@@ -231,3 +249,4 @@ fig4.write_html("export/fig4_temps_annee_entiere.html")
 fig5.write_html("export/fig5_temps_annee_comparatif.html")
 print("Les graphiques ont été sauvegardés en tant que fichiers HTML.")
 print("Téléchargez-les ou ouvrez-les dans un navigateur.")
+
