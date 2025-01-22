@@ -49,7 +49,7 @@ def etl_format_observatoire(df):
 
 def etl_format_opendata(df):
     # Supprime les données non utilisées (Non Europe et Non 2018)
-    drop_condition = (df["Region"] != "Europe" | df["Year"] != 2018)
+    drop_condition = (df["Region"] != "Europe") | (df["Year"] != 2018)
     df.drop(df[drop_condition].index, inplace = True)
     # Convertir les colonnes en numérique et gérer les valeurs manquantes
     df["Temperature"] = df["AvgTemperature"].apply(pd.to_numeric, errors='coerce')
